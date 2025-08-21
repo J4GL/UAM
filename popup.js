@@ -19,17 +19,26 @@ const userAgents = {
 const applyBtn = document.getElementById('applyBtn');
 const resetBtn = document.getElementById('resetBtn');
 const statusDiv = document.getElementById('status');
+const customUaInput = document.getElementById('customUaInput');
+const customUaSelect = document.getElementById('customUaSelect');
+const saveCustomUaBtn = document.getElementById('saveCustomUaBtn');
+const deleteCustomUaBtn = document.getElementById('deleteCustomUaBtn');
+const radios = document.querySelectorAll('input[name="useragent"]');
 
-// Charger la sélection sauvegardée
+// Charger les sélections et les UAs personnalisés
 document.addEventListener('DOMContentLoaded', async () => {
+  loadCustomUserAgents();
   try {
-    const result = await chrome.storage.sync.get(['selectedUserAgent']);
+    const result = await chrome.storage.sync.get(['selectedUserAgent', 'selectedCustomUserAgent']);
     if (result.selectedUserAgent) {
       const radio = document.querySelector(`input[value="${result.selectedUserAgent}"]`);
       if (radio) {
         radio.checked = true;
       }
       showStatus('User agent actuel: ' + getDisplayName(result.selectedUserAgent), 'info');
+    } else if (result.selectedCustomUserAgent) {
+      customUaSelect.value = result.selectedCustomUserAgent;
+      showStatus('User agent actuel: ' + result.selectedCustomUserAgent, 'info');
     }
   } catch (error) {
     console.error('Erreur lors du chargement:', error);
@@ -39,27 +48,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Appliquer le user agent sélectionné
 applyBtn.addEventListener('click', async () => {
   const selectedRadio = document.querySelector('input[name="useragent"]:checked');
+  const selectedCustomUa = customUaSelect.value;
   
-  if (!selectedRadio) {
-    showStatus('Veuillez sélectionner un navigateur et un OS', 'error');
+  let userAgent, selectedValue, displayName;
+
+  if (selectedCustomUa) {
+    userAgent = selectedCustomUa;
+    selectedValue = selectedCustomUa;
+    displayName = selectedCustomUa.substring(0, 50) + '...'; // Truncate for display
+    await chrome.storage.sync.set({ selectedCustomUserAgent: selectedValue, selectedUserAgent: '' });
+  } else if (selectedRadio) {
+    selectedValue = selectedRadio.value;
+    userAgent = userAgents[selectedValue];
+    displayName = getDisplayName(selectedValue);
+    await chrome.storage.sync.set({ selectedUserAgent: selectedValue, selectedCustomUserAgent: '' });
+  } else {
+    showStatus('Veuillez sélectionner un user agent', 'error');
     return;
   }
   
-  const selectedValue = selectedRadio.value;
-  const userAgent = userAgents[selectedValue];
-  
   try {
-    // Sauvegarder la sélection
-    await chrome.storage.sync.set({ selectedUserAgent: selectedValue });
-    
-    // Envoyer un message au service worker pour appliquer le user agent
     await chrome.runtime.sendMessage({
       action: 'setUserAgent',
       userAgent: userAgent,
       key: selectedValue
     });
-    
-    showStatus(`User agent appliqué: ${getDisplayName(selectedValue)}`, 'success');
+    showStatus(`User agent appliqué: ${displayName}`, 'success');
   } catch (error) {
     console.error('Erreur lors de l\'application:', error);
     showStatus('Erreur lors de l\'application du user agent', 'error');
@@ -69,17 +83,11 @@ applyBtn.addEventListener('click', async () => {
 // Reset du user agent
 resetBtn.addEventListener('click', async () => {
   try {
-    // Supprimer la sélection sauvegardée
-    await chrome.storage.sync.remove(['selectedUserAgent']);
+    await chrome.storage.sync.remove(['selectedUserAgent', 'selectedCustomUserAgent']);
+    await chrome.runtime.sendMessage({ action: 'resetUserAgent' });
     
-    // Envoyer un message au service worker pour reset
-    await chrome.runtime.sendMessage({
-      action: 'resetUserAgent'
-    });
-    
-    // Décocher tous les radios
-    const radios = document.querySelectorAll('input[name="useragent"]');
     radios.forEach(radio => radio.checked = false);
+    customUaSelect.value = '';
     
     showStatus('User agent réinitialisé', 'success');
   } catch (error) {
@@ -88,13 +96,84 @@ resetBtn.addEventListener('click', async () => {
   }
 });
 
+// Sauvegarder un UA personnalisé
+saveCustomUaBtn.addEventListener('click', async () => {
+  const uaString = customUaInput.value.trim();
+  if (uaString) {
+    try {
+      const result = await chrome.storage.sync.get({customUserAgents: []});
+      const customUAs = result.customUserAgents;
+      if (!customUAs.includes(uaString)) {
+        customUAs.push(uaString);
+        await chrome.storage.sync.set({ customUserAgents: customUAs });
+        loadCustomUserAgents();
+        customUaInput.value = '';
+        showStatus('User agent personnalisé sauvegardé', 'success');
+      } else {
+        showStatus('Ce user agent existe déjà', 'info');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      showStatus('Erreur lors de la sauvegarde', 'error');
+    }
+  }
+});
+
+// Supprimer un UA personnalisé
+deleteCustomUaBtn.addEventListener('click', async () => {
+  const selectedUa = customUaSelect.value;
+  if (selectedUa) {
+    try {
+      const result = await chrome.storage.sync.get({customUserAgents: []});
+      let customUAs = result.customUserAgents;
+      customUAs = customUAs.filter(ua => ua !== selectedUa);
+      await chrome.storage.sync.set({ customUserAgents: customUAs });
+      loadCustomUserAgents();
+      showStatus('User agent personnalisé supprimé', 'success');
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      showStatus('Erreur lors de la suppression', 'error');
+    }
+  }
+});
+
+// Charger les UAs personnalisés dans le select
+async function loadCustomUserAgents() {
+  try {
+    const result = await chrome.storage.sync.get({customUserAgents: []});
+    const customUAs = result.customUserAgents;
+    customUaSelect.innerHTML = '<option value="">Sélectionner un User Agent personnalisé</option>';
+    customUAs.forEach(ua => {
+      const option = document.createElement('option');
+      option.value = ua;
+      option.textContent = ua.substring(0, 50) + '...'; // Truncate for display
+      customUaSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Erreur lors du chargement des UAs personnalisés:', error);
+  }
+}
+
+// Assurer la sélection mutuellement exclusive
+radios.forEach(radio => {
+  radio.addEventListener('change', () => {
+    if (radio.checked) {
+      customUaSelect.value = '';
+    }
+  });
+});
+
+customUaSelect.addEventListener('change', () => {
+  if (customUaSelect.value) {
+    radios.forEach(radio => radio.checked = false);
+  }
+});
+
 // Afficher un message de statut
 function showStatus(message, type = 'info') {
   statusDiv.textContent = message;
   statusDiv.className = `status ${type}`;
   statusDiv.style.display = 'block';
-
-  // Masquer le message après 3 secondes
   setTimeout(() => {
     statusDiv.style.display = 'none';
   }, 3000);
@@ -102,18 +181,11 @@ function showStatus(message, type = 'info') {
 
 // Obtenir le nom d'affichage pour une clé
 function getDisplayName(key) {
-  const [browser, os] = key.split('-');
-  const browserNames = {
-    chrome: 'Chrome',
-    firefox: 'Firefox',
-    safari: 'Safari',
-    edge: 'Edge'
-  };
-  const osNames = {
-    windows: 'Windows',
-    macos: 'macOS',
-    linux: 'Linux'
-  };
-  
-  return `${browserNames[browser]} sur ${osNames[os]}`;
+  if (!key) return '';
+  const parts = key.split('-');
+  if (parts.length < 2) return key;
+  const [browser, os] = parts;
+  const browserNames = { chrome: 'Chrome', firefox: 'Firefox', safari: 'Safari', edge: 'Edge' };
+  const osNames = { windows: 'Windows', macos: 'macOS', linux: 'Linux' };
+  return `${browserNames[browser] || browser} sur ${osNames[os] || os}`;
 }

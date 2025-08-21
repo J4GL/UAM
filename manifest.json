@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "User Agent Switcher",
+  "name": "User Agents Matrix",
   "version": "1.0",
   "description": "Change user agent with a simple browser/OS matrix",
   "permissions": [
@@ -18,7 +18,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "User Agent Switcher"
+    "default_title": "User Agents Matrix"
   },
   "icons": {
     "16": "icons/icon16.png",
