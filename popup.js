@@ -49,7 +49,11 @@ async function applyUserAgent() {
   
   let userAgent, selectedValue, displayName;
 
-  if (selectedCustomUa) {
+  if (selectedCustomUa === 'default') {
+    // Reset to native browser user agent
+    await resetUserAgent();
+    return;
+  } else if (selectedCustomUa) {
     userAgent = selectedCustomUa;
     selectedValue = selectedCustomUa;
     displayName = selectedCustomUa.substring(0, 50) + '...'; // Truncate for display
@@ -167,7 +171,7 @@ async function loadCustomUserAgents() {
   try {
     const result = await chrome.storage.sync.get({customUserAgents: []});
     const customUAs = result.customUserAgents;
-    customUaSelect.innerHTML = '<option value="">Sélectionner un User Agent personnalisé</option>';
+    customUaSelect.innerHTML = '<option value="">Sélectionner un User Agent personnalisé</option><option value="default">Disable user agent modification</option>';
     customUAs.forEach(ua => {
       const option = document.createElement('option');
       option.value = ua;
