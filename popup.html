@@ -38,57 +38,58 @@
     }
     
     .matrix-table {
-      width: 100%;
       border-collapse: separate;
-      border-spacing: 0 4px;
-      margin-bottom: 12px;
+      border-spacing: 4px;
+      margin: 0 auto 12px auto;
+      table-layout: fixed;
     }
     
     .matrix-table th,
     .matrix-table td {
-      padding: 8px;
+      width: 80px;
+      height: 80px;
+      padding: 0;
       text-align: center;
+      vertical-align: middle;
       border: 1px solid var(--border-color);
+      box-sizing: border-box;
     }
 
-    .matrix-table th:first-child,
-    .matrix-table td:first-child {
-      border-top-left-radius: 8px;
-      border-bottom-left-radius: 8px;
-    }
-
-    .matrix-table th:last-child,
-    .matrix-table td:last-child {
-      border-top-right-radius: 8px;
-      border-bottom-right-radius: 8px;
+    .matrix-table th,
+    .matrix-table td {
+      border-radius: 8px;
     }
     
     .matrix-table th {
-      background-color: var(--primary-color);
+      background-color: transparent;
       color: var(--white-color);
       font-weight: 500;
+      border: 1px solid var(--border-color);
+    }
+    
+    .matrix-table th:first-child {
       border: none;
     }
     
     .browser-label {
-      background-color: var(--secondary-color);
+      background-color: transparent;
       font-weight: 500;
-      text-align: left;
-      padding-left: 12px;
-      border-right: none;
+      border: none;
+    }
+    
+    .icon {
+      width: 70px;
+      height: 70px;
+      display: inline-block;
+      margin: 0;
+      padding: 0;
+      object-fit: contain;
     }
     
     .radio-cell {
       position: relative;
       cursor: pointer;
       transition: background-color 0.2s ease;
-      border-left: none;
-      border-right: none;
-      height: 38px; /* Fix height */
-    }
-
-    .radio-cell:last-child {
-      border-right: 1px solid var(--border-color);
     }
     
     .radio-cell:hover {
@@ -108,7 +109,7 @@
 
     .radio-cell .checkmark {
       display: none;
-      font-size: 20px;
+      font-size: 60px;
       color: var(--primary-color);
       position: absolute;
       top: 50%;
@@ -207,9 +208,8 @@
       border-top: 1px solid var(--border-color);
     }
 
-    .custom-ua-input,
     .custom-ua-select {
-      width: 100%;
+      flex: 1;
       padding: 10px;
       margin-bottom: 8px;
       border: 1px solid var(--border-color);
@@ -219,11 +219,91 @@
       font-size: 14px;
     }
 
-    .custom-ua-input:focus,
     .custom-ua-select:focus {
       outline: none;
       border-color: var(--primary-color);
       box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    }
+
+    .custom-ua-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .btn-edit {
+      background-color: #6c757d;
+      color: var(--white-color);
+      padding: 10px 12px;
+      min-width: auto;
+    }
+
+    .btn-edit:hover {
+      background-color: #545b62;
+    }
+
+    .custom-ua-management {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+      display: none;
+    }
+
+    .custom-ua-input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-family: 'Roboto', sans-serif;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .custom-ua-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    }
+
+    .custom-ua-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .custom-ua-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    .custom-ua-item:last-child {
+      border-bottom: none;
+    }
+
+    .custom-ua-item:hover {
+      background-color: var(--secondary-color);
+    }
+
+    .custom-ua-text {
+      flex: 1;
+      margin-right: 8px;
+    }
+
+    .btn-small {
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 4px;
     }
   </style>
 </head>
@@ -235,33 +315,27 @@
     <table class="matrix-table">
       <thead>
         <tr>
-          <th>Navigateur</th>
-          <th>Windows</th>
-          <th>macOS</th>
-          <th>Linux</th>
+          <th></th>
+          <th><img src="icons/windows.png" class="icon" alt="Windows"></th>
+          <th><img src="icons/macos.png" class="icon" alt="macOS"></th>
+          <th><img src="icons/linux.png" class="icon" alt="Linux"></th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td class="browser-label">Chrome</td>
+          <td class="browser-label"><img src="icons/chrome.jpg" class="icon" alt="Chrome"></td>
           <td class="radio-cell"><input type="radio" name="useragent" value="chrome-windows"><span class="checkmark">✔</span></td>
           <td class="radio-cell"><input type="radio" name="useragent" value="chrome-macos"><span class="checkmark">✔</span></td>
           <td class="radio-cell"><input type="radio" name="useragent" value="chrome-linux"><span class="checkmark">✔</span></td>
         </tr>
         <tr>
-          <td class="browser-label">Firefox</td>
-          <td class="radio-cell"><input type="radio" name="useragent" value="firefox-windows"><span class="checkmark">✔</span></td>
-          <td class="radio-cell"><input type="radio" name="useragent" value="firefox-macos"><span class="checkmark">✔</span></td>
-          <td class="radio-cell"><input type="radio" name="useragent" value="firefox-linux"><span class="checkmark">✔</span></td>
-        </tr>
-        <tr>
-          <td class="browser-label">Safari</td>
+          <td class="browser-label"><img src="icons/safari.jpg" class="icon" alt="Safari"></td>
           <td class="radio-cell"><input type="radio" name="useragent" value="safari-windows" disabled><span class="checkmark">✔</span></td>
           <td class="radio-cell"><input type="radio" name="useragent" value="safari-macos"><span class="checkmark">✔</span></td>
           <td class="radio-cell"><input type="radio" name="useragent" value="safari-linux" disabled><span class="checkmark">✔</span></td>
         </tr>
         <tr>
-          <td class="browser-label">Edge</td>
+          <td class="browser-label"><img src="icons/edge.jpg" class="icon" alt="Edge"></td>
           <td class="radio-cell"><input type="radio" name="useragent" value="edge-windows"><span class="checkmark">✔</span></td>
           <td class="radio-cell"><input type="radio" name="useragent" value="edge-macos"><span class="checkmark">✔</span></td>
           <td class="radio-cell"><input type="radio" name="useragent" value="edge-linux"><span class="checkmark">✔</span></td>
@@ -269,21 +343,30 @@
       </tbody>
     </table>
     
-    <div class="controls">
-      <button id="resetBtn" class="btn btn-secondary">Reset</button>
-      <button id="applyBtn" class="btn btn-primary">Appliquer</button>
-    </div>
     
     <div id="status" class="status" style="display: none;"></div>
 
     <div class="custom-ua-container">
-      <select id="customUaSelect" class="custom-ua-select">
-        <option value="">Sélectionner un User Agent personnalisé</option>
-      </select>
-      <textarea id="customUaInput" class="custom-ua-input" rows="2" placeholder="Entrez un User Agent personnalisé"></textarea>
-      <div class="controls">
-        <button id="deleteCustomUaBtn" class="btn btn-secondary">Supprimer</button>
-        <button id="saveCustomUaBtn" class="btn btn-primary">Sauvegarder</button>
+      <div class="custom-ua-row">
+        <select id="customUaSelect" class="custom-ua-select">
+          <option value="">Sélectionner un User Agent personnalisé</option>
+        </select>
+        <button id="editCustomUaBtn" class="btn btn-edit">✏️</button>
+      </div>
+      
+      <div id="customUaManagement" class="custom-ua-management">
+        <h3 style="margin: 0 0 12px 0; font-size: 16px;">Gérer les User Agents personnalisés</h3>
+        
+        <div class="custom-ua-list" id="customUaList">
+          <!-- Custom UA items will be populated here -->
+        </div>
+        
+        <textarea id="customUaInput" class="custom-ua-input" rows="3" placeholder="Entrez un nouveau User Agent personnalisé"></textarea>
+        
+        <div class="controls">
+          <button id="closeManagementBtn" class="btn btn-secondary">Fermer</button>
+          <button id="saveCustomUaBtn" class="btn btn-primary">Ajouter</button>
+        </div>
       </div>
     </div>
   </div>

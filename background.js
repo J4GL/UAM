@@ -2,15 +2,31 @@
 let currentRuleId = 1;
 
 // Écouter les messages du popup
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'setUserAgent') {
-    await setUserAgent(message.userAgent);
-    await notifyContentScripts(message.userAgent);
-    sendResponse({ success: true });
+    (async () => {
+      try {
+        await setUserAgent(message.userAgent);
+        await notifyContentScripts(message.userAgent);
+        sendResponse({ success: true });
+      } catch (error) {
+        console.error('Erreur lors de l\'application du user agent:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true; // Indicate async response
   } else if (message.action === 'resetUserAgent') {
-    await resetUserAgent();
-    await notifyContentScriptsReset();
-    sendResponse({ success: true });
+    (async () => {
+      try {
+        await resetUserAgent();
+        await notifyContentScriptsReset();
+        sendResponse({ success: true });
+      } catch (error) {
+        console.error('Erreur lors du reset:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true; // Indicate async response
   }
 });
 
@@ -22,7 +38,7 @@ async function setUserAgent(userAgent) {
     
     // Créer une nouvelle règle pour modifier le header User-Agent
     const rule = {
-      id: currentRuleId,
+      id: currentRuleId++,
       priority: 1,
       action: {
         type: 'modifyHeaders',
@@ -36,7 +52,7 @@ async function setUserAgent(userAgent) {
       },
       condition: {
         urlFilter: '*',
-        resourceTypes: ['main_frame', 'sub_frame', 'xmlhttprequest']
+        resourceTypes: ['main_frame', 'sub_frame', 'xmlhttprequest', 'script', 'stylesheet', 'image', 'font', 'object', 'other']
       }
     };
     
@@ -46,6 +62,7 @@ async function setUserAgent(userAgent) {
     });
     
     console.log('User agent appliqué:', userAgent);
+    console.log('Règle declarativeNetRequest créée avec ID:', rule.id);
     
     // Mettre à jour l'icône pour indiquer que l'extension est active
     await chrome.action.setBadgeText({ text: 'ON' });
@@ -89,20 +106,24 @@ async function removeExistingRules() {
   }
 }
 
-// Initialisation au démarrage de l'extension
-chrome.runtime.onStartup.addListener(async () => {
+// Fonction d'initialisation réutilisable
+async function initializeExtension() {
   try {
+    console.log('Initialisation de l\'extension User Agent Switcher...');
     // Vérifier s'il y a un user agent sauvegardé
-    const result = await chrome.storage.sync.get(['selectedUserAgent']);
-    if (result.selectedUserAgent) {
-      // Réappliquer le user agent sauvegardé
+    const result = await chrome.storage.sync.get(['selectedUserAgent', 'selectedCustomUserAgent']);
+    console.log('Données de storage récupérées:', result);
+    
+    if (result.selectedCustomUserAgent) {
+      // Réappliquer le user agent personnalisé sauvegardé
+      await setUserAgent(result.selectedCustomUserAgent);
+      await notifyContentScripts(result.selectedCustomUserAgent);
+    } else if (result.selectedUserAgent) {
+      // Réappliquer le user agent prédéfini sauvegardé
       const userAgents = {
         'chrome-windows': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'chrome-macos': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'chrome-linux': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'firefox-windows': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
-        'firefox-macos': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0',
-        'firefox-linux': 'Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0',
         'safari-macos': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
         'edge-windows': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
         'edge-macos': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
@@ -112,12 +133,22 @@ chrome.runtime.onStartup.addListener(async () => {
       const userAgent = userAgents[result.selectedUserAgent];
       if (userAgent) {
         await setUserAgent(userAgent);
+        await notifyContentScripts(userAgent);
       }
     }
   } catch (error) {
     console.error('Erreur lors de l\'initialisation:', error);
   }
-});
+}
+
+// Initialisation lors du démarrage de Chrome
+chrome.runtime.onStartup.addListener(initializeExtension);
+
+// Initialisation lors de l'installation ou du redémarrage du service worker
+chrome.runtime.onInstalled.addListener(initializeExtension);
+
+// Initialisation immédiate au chargement du service worker (important pour Manifest V3)
+initializeExtension();
 
 // Notifier tous les content scripts du changement d'user agent
 async function notifyContentScripts(userAgent) {
@@ -158,9 +189,3 @@ async function notifyContentScriptsReset() {
   }
 }
 
-// Gérer l'installation de l'extension
-chrome.runtime.onInstalled.addListener(async (details) => {
-  if (details.reason === 'install') {
-    console.log('Extension User Agent Switcher installée');
-  }
-});

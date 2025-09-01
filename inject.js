@@ -124,4 +124,9 @@
     
     console.log('Script d\'injection User Agent chargé');
     
+    // Signal to content script that inject script is ready
+    window.postMessage({
+        type: 'INJECT_SCRIPT_READY'
+    }, '*');
+    
 })();
