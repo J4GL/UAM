@@ -128,8 +128,10 @@ saveCustomUaBtn.addEventListener('click', async () => {
 
 // Show/hide custom UA management
 editCustomUaBtn.addEventListener('click', () => {
-  customUaManagement.style.display = customUaManagement.style.display === 'none' ? 'block' : 'block';
-  loadCustomUserAgentsList();
+  customUaManagement.style.display = customUaManagement.style.display === 'none' ? 'block' : 'none';
+  if (customUaManagement.style.display === 'block') {
+    loadCustomUserAgentsList();
+  }
 });
 
 closeManagementBtn.addEventListener('click', () => {
